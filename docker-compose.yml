@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  signbridge:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./models:/app/models
+      - ./dataset:/app/dataset
+      - ./translations:/app/translations
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=False
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

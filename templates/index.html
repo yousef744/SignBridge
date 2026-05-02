@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignBridge Pro | AI Sign Language Translator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+<base target="_blank">
+</head>
+<body>
+    <!-- ===== VIDEO BACKGROUND ===== -->
+    <div class="video-bg-container">
+        <video class="video-bg" autoplay muted loop playsinline>
+            <source src="/static/sign-bg.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+
+    <!-- ===== PARTICLE SYSTEM ===== -->
+    <div class="particles-container" id="particlesContainer"></div>
+
+    <!-- ===== BACKGROUND EFFECTS ===== -->
+    <div class="bg-mesh"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="noise"></div>
+
+    <!-- ===== CURSOR GLOW ===== -->
+    <div class="cursor-glow" id="cursorGlow"></div>
+
+    <!-- ===== NAVIGATION ===== -->
+    <nav class="navbar">
+        <a href="#" class="logo">
+            <svg class="logo-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M24 4 L30 18 L46 18 L34 28 L38 44 L24 34 L10 44 L14 28 L2 18 L18 18 Z" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="24" cy="24" r="4" fill="currentColor"/>
+                <path d="M24 8 L24 12 M24 36 L24 40 M8 24 L12 24 M36 24 L40 24" stroke-linecap="round"/>
+            </svg>
+            <span>SignBridge Pro</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#translator" class="active">Translator</a></li>
+            <li><a href="#sentences">Sentences</a></li>
+            <li><a href="#converter">Converter</a></li>
+            <li><a href="#guide">Guide</a></li>
+        </ul>
+        <div class="developer-badge">
+            <span>Developed by</span>
+            <span class="name">Y&M</span>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN CONTAINER ===== -->
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero fade-in">
+            <div class="hero-badge">
+                <span>✦</span>
+                <span>AI-Powered Sign Language Translation</span>
+                <span>✦</span>
+            </div>
+            <h1>Break the <span class="gradient">Silence</span></h1>
+            <p class="typing-text">Experience the future of communication with real-time ASL Translate </p>
+        </section>
+
+        <!-- Mode Switcher -->
+        <div class="mode-switcher fade-in">
+            <button class="mode-btn active" id="modeLetters" onclick="switchMode('letters')">
+                <span class="icon">🔤</span>
+                <span>Letters Mode</span>
+            </button>
+            <button class="mode-btn" id="modeSentences" onclick="switchMode('sentences')">
+                <span class="icon">💬</span>
+                <span>Sentences Mode</span>
+            </button>
+        </div>
+
+        <!-- Main Translator -->
+        <section id="translator" class="main-grid fade-in">
+            <!-- Camera -->
+            <div class="camera-section">
+                <div class="camera-container">
+                    <div class="camera-wrapper">
+                        <video id="inputVideo" class="input-video" playsinline></video>
+                        <canvas id="outputCanvas" class="output-canvas"></canvas>
+
+                        <!-- Loading -->
+                        <div class="loading-overlay" id="loadingOverlay">
+                            <div class="loader-ring"></div>
+                            <p class="loader-text">Initializing Neural Network...</p>
+                            <div class="progress-container">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                        </div>
+
+                        <!-- Start Button -->
+                        <div class="start-overlay" id="startOverlay">
+                            <button class="btn-start" id="startBtn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polygon points="5 3 19 12 5 21 5 3" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Start Camera
+                            </button>
+                            <p style="color: var(--text-secondary); font-size: 1.1rem;">Allow camera access to begin translation</p>
+                        </div>
+
+                        <!-- Detection Badge -->
+                        <div class="detection-badge">
+                            <div class="label">Detected Sign</div>
+                            <div class="value" id="detectionValue">-</div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="camera-controls">
+                            <button class="control-btn" id="flipBtn" title="Flip Camera">⟲</button>
+                            <button class="control-btn" id="settingsBtn" title="Settings">⚙</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Current Prediction -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="icon">🎯</span>
+                            Current Sign
+                        </h3>
+                    </div>
+                    <div class="prediction-showcase">
+                        <div class="prediction-main" id="currentPrediction">-</div>
+                        <div class="confidence-meter">
+                            <div class="confidence-bar-bg">
+                                <div class="confidence-bar-fill" id="confidenceFill"></div>
+                            </div>
+                            <div class="confidence-text" id="confidenceText">0% confidence</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Predictions -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="icon">📊</span>
+                            Top Matches
+                        </h3>
+                    </div>
+                    <div class="predictions-list" id="topPredictions"></div>
+                </div>
+
+                <!-- Translation Output -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <span class="icon">📝</span>
+                            Translation
+                        </h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="control-btn" id="copyBtn" style="width: 36px; height: 36px; font-size: 1rem;" title="Copy">📋</button>
+                            <button class="control-btn" id="speakBtn" style="width: 36px; height: 36px; font-size: 1rem;" title="Speak">🔊</button>
+                            <button class="control-btn" id="clearBtn" style="width: 36px; height: 36px; font-size: 1rem;" title="Clear">🗑</button>
+                        </div>
+                    </div>
+                    <div class="translation-area" id="translationOutput">
+                        <span class="placeholder">Start signing to translate...</span>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="action-bar">
+                    <button class="action-btn" id="spaceBtn">
+                        <span class="icon">␣</span>
+                        <span>Space</span>
+                    </button>
+                    <button class="action-btn" id="deleteBtn">
+                        <span class="icon">⌫</span>
+                        <span>Delete</span>
+                    </button>
+                    <button class="action-btn" id="addSentenceBtn" style="display: none;">
+                        <span class="icon">➕</span>
+                        <span>Add</span>
+                    </button>
+                    <button class="action-btn" id="speakAllBtn">
+                        <span class="icon">🔊</span>
+                        <span>Speak All</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Common Sentences -->
+        <section id="sentences" class="sentences-section reveal">
+            <div class="section-title">
+                <h2>Common Sentences</h2>
+                <span class="new-badge">Popular</span>
+            </div>
+            <div class="sentences-grid" id="sentencesGrid"></div>
+        </section>
+
+        <!-- Text to Sign Converter -->
+        <section id="converter" class="converter-section reveal">
+            <div class="section-title">
+                <h2>Text to Sign Converter</h2>
+            </div>
+            <div class="converter-box">
+                <textarea id="textInput" class="input-elegant" placeholder="Type your message here to convert to sign language..."></textarea>
+                <button class="btn-magic" id="convertBtn">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Convert to Sign
+                </button>
+            </div>
+            <div class="speak-row">
+                <button class="btn-speak" id="speakTextBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Speak Text
+                </button>
+            </div>
+            <div class="signs-container" id="signDisplay">
+                <p style="color: var(--text-muted); width: 100%; text-align: center; font-size: 1.1rem;">
+                    Enter text above and click Convert to see sign language translation
+                </p>
+            </div>
+        </section>
+
+        <!-- Guide -->
+        <section id="guide" class="guide-section reveal">
+            <div class="guide-header">
+                <h2>Sign Language Guide</h2>
+                <p>Click any letter to learn the hand sign</p>
+            </div>
+            <div class="alphabet-showcase" id="alphabetGrid"></div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-logo">SignBridge Pro</div>
+                <p class="footer-text">
+                    Breaking communication barriers through innovative AI technology.
+                    Built with MediaPipe, TensorFlow.js, and Web Speech API.
+                </p>
+                <div class="developer-signature">
+                    <span class="label">Software Developer</span>
+                    <span class="name">Y&M</span>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+                    © 2024 SignBridge Pro. All rights reserved.
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-glass">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ Settings</h3>
+                <button class="btn-close" id="closeSettings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Confidence Threshold</div>
+                        <div class="setting-desc">Minimum confidence to accept a sign</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <input type="range" id="thresholdRange" min="0.3" max="0.95" step="0.05" value="0.7">
+                        <div id="thresholdValue" style="color: var(--primary); font-weight: 700; margin-top: 0.5rem;">70%</div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Show Skeleton</div>
+                        <div class="setting-desc">Display hand tracking overlay</div>
+                    </div>
+                    <div class="toggle-switch active" id="skeletonToggle"></div>
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Auto-speak</div>
+                        <div class="setting-desc">Automatically speak detected letters</div>
+                    </div>
+                    <div class="toggle-switch" id="autoSpeakToggle"></div>
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Letter Cooldown</div>
+                        <div class="setting-desc">Delay between letter detections (ms)</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <input type="range" id="cooldownRange" min="500" max="3000" step="100" value="1500">
+                        <div id="cooldownValue" style="color: var(--primary); font-weight: 700; margin-top: 0.5rem;">1500ms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/main.js"></script>
+</body>
+</html>
